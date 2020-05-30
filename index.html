@@ -1,0 +1,105 @@
+<html>
+    <script src="release/bundle.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body, #mapid {
+            height: 96%;
+            width: 100%;
+        }
+    </style>
+<body>
+    <a class="github-fork-ribbon" href="https://github.com/pasindud/sector_parser" 
+      data-ribbon="Fork me on GitHub" title="Fork me on GitHub">
+      Fork me on GitHub
+    </a>
+
+    <div style="height: 30px; padding: 20px; padding-bottom: 5px;">
+        <span>
+            <input type='file' onchange='openFile(event)'>    
+        </span>
+        <span>
+            Load from URL -
+            <input id="url" type='text' style="width: 200px;">
+        </span>
+        <span>
+            <button onclick='openUrl(event)'>load url</button>
+        </span>
+    </div>
+    <div id="mapid"></div>
+    
+    <script>
+        const map = L.map('mapid');
+
+        function openUrl(event) {
+            var input = document.getElementById("url");
+            fetch(input.value)
+                .then(
+                    function(response) {
+                        response.text().then(function(data) {
+                            render(data);
+                        });
+                    });  
+        }
+
+        function openFile(event) {
+            var input = event.target;
+            var reader = new FileReader();
+            reader.onload = function(){
+                render(reader.result);
+            };
+            reader.readAsText(input.files[0]);
+        }
+
+        function clear() {
+            map.eachLayer(function (layer) {
+                map.removeLayer(layer);
+            });
+        }
+
+        function render(data) {
+            clear();
+            const info = Bundle.Info.parse(data);
+            const regions = Bundle.Region.parse(data);
+            const geos = Bundle.Geo.parse(data);
+            const geoJson = Bundle.getGeoJson([geos, regions]);
+            map.setView([info.defaultCenter.lat, info.defaultCenter.lon], 13);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 50
+            }).addTo(map);
+
+            L.geoJSON(geoJson, {style: setStyle}).addTo(map);
+        }
+
+        function setStyle(feature) {
+            const color = feature.properties.fill == undefined ?
+                            "#000" :
+                            feature.properties.fill;
+            return {
+                fillColor: color,
+                color: color,
+                fillOpacity: 1,
+            };
+        }
+
+        (function() {
+            fetch('test/Mumbai.sct')
+                .then(
+                    function(response) {
+                        response.text().then(function(data) {
+                            render(data);
+                        });
+                    });            
+        }());
+    </script>
+</body>
+</html>

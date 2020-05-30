@@ -1,0 +1,24 @@
+{
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha test",
+    "lint": "node node_modules/standard/bin/cmd.js src/* test/*.js",
+    "fix": "node node_modules/standard/bin/cmd.js --fix src/* test/*.js && node_modules/js-beautify/js/bin/js-beautify.js src/*.js test/*.js"
+  },
+  "standard": {
+    "env": [
+      "mocha"
+    ]
+  },
+  "devDependencies": {
+    "standard": "^14.*.*",
+    "mocha": "^7.*.*"
+  },
+  "dependencies": {
+    "@mapbox/geojson-mapnikify": "^0.8.0",
+    "js-beautify": "^1.11.0",
+    "mapnik": "^3.6.2"
+  },
+  "name": "sector_parser",
+  "version": "1.0.0",
+  "license": "MIT"
+}
