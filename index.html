@@ -9,10 +9,19 @@
             padding: 0;
             margin: 0;
         }
-        html, body, #mapid {
-            height: 96%;
+        html, body {
+            height: 100%;
             width: 100%;
         }
+        #mapid {
+            height: 96%;
+            width: 85%;
+        }
+        .column {
+            float: left;
+            width: 50%;
+        }
+
     </style>
 <body>
     <a class="github-fork-ribbon" href="https://github.com/pasindud/sector_parser" 
@@ -32,18 +41,52 @@
             <button onclick='openUrl(event)'>load url</button>
         </span>
     </div>
-    <div id="mapid"></div>
+    <div style="float: left;" id="mapid"></div>
+    <div style="float: left; padding-left: 10px;">
+            <select style="font-size: 20px; height: 250px; width: fit-content;"
+                multiple onchange="onOptionsChange(this)">
+                <option value="region"selected="selected">Region</option>
+                <option value="geo" selected="selected">Geo</option>
+                <option value="vor">Vor</option>
+                <option value="ndb">Ndb</option>
+                <option value="fix">Fix</option>
+                <option value="airport">Airport</option>
+                <option value="artcc_low">Artcc Low</option>
+                <option value="artcc_high">Artcc High</option>
+            </select>
+    </div>
     
     <script>
         const map = L.map('mapid');
+        var loadedSectorFileContent;
+        var showRegions = true;
+        var showGeos = true;
+        var showVors = false;
+        var showNdbs = false;
+        var showAirport = false;
+        var showArtccHigh = false;
+        var showArtccLow = false;
+        var showFix = false;
 
+        function onOptionsChange(selectObject) {
+            showRegions = selectObject.options[0].selected;
+            showGeos = selectObject.options[1].selected;
+            showVors = selectObject.options[2].selected;
+            showNdbs = selectObject.options[3].selected;
+            showFix = selectObject.options[4].selected;
+            showAirport = selectObject.options[5].selected;
+            showArtccLow = selectObject.options[6].selected;
+            showArtccHigh = selectObject.options[7].selected;
+            render();
+        }
         function openUrl(event) {
             var input = document.getElementById("url");
             fetch(input.value)
                 .then(
                     function(response) {
                         response.text().then(function(data) {
-                            render(data);
+                            loadedSectorFileContent = data;
+                            render();
                         });
                     });  
         }
@@ -52,7 +95,8 @@
             var input = event.target;
             var reader = new FileReader();
             reader.onload = function(){
-                render(reader.result);
+                loadedSectorFileContent = reader.result;
+                render();
             };
             reader.readAsText(input.files[0]);
         }
@@ -63,12 +107,39 @@
             });
         }
 
-        function render(data) {
+
+        function render() {
             clear();
+            sections = [];
+            const data = loadedSectorFileContent;
             const info = Bundle.Info.parse(data);
-            const regions = Bundle.Region.parse(data);
-            const geos = Bundle.Geo.parse(data);
-            const geoJson = Bundle.getGeoJson([geos, regions]);
+
+            if (showRegions) {
+                sections.push(Bundle.Region.parse(data));
+            }
+            if (showGeos) {
+                sections.push(Bundle.Geo.parse(data));
+            }
+            if (showVors) {
+                sections.push(Bundle.Vor.parse(data));
+            }
+            if (showAirport) {
+                sections.push(Bundle.Airport.parse(data));
+            }
+            if (showFix) {
+                sections.push(Bundle.Fix.parse(data));
+            }
+            if (showNdbs) {
+                sections.push(Bundle.Ndb.parse(data));
+            }
+            if (showArtccHigh) {
+                sections.push(Bundle.Artcc.parseArtccHigh(data))
+            }  
+            if (showArtccLow) {
+                sections.push(Bundle.Artcc.parseArtccLow(data))
+            }
+
+            const geoJson = Bundle.getGeoJson(sections);
             map.setView([info.defaultCenter.lat, info.defaultCenter.lon], 13);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
@@ -96,7 +167,8 @@
                 .then(
                     function(response) {
                         response.text().then(function(data) {
-                            render(data);
+                            loadedSectorFileContent = data;
+                            render();
                         });
                     });            
         }());
